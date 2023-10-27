@@ -23,7 +23,29 @@ io.on("connection", (socket) => {
 
     socket.on("chat:send", (message) => {
         console.log(message);
-        io.emit("chat:receive", message);
+
+        axios
+            .post("http://localhost:8000/api/messages", {
+                ...message,
+                sender: message.sender.id,
+            })
+            .then((result) => {
+                io.to(`conversation/${message.conversation}`).emit(
+                    "chat:receive",
+                    result.data
+                );
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    });
+
+    socket.on("conversation:join", (conversations) => {
+        if (conversations?.toLeaveId) {
+            socket.leave(`conversation/${conversations.toLeaveId}`);
+        }
+
+        socket.join(`conversation/${conversations.toJoinId}`);
     });
 
     socket.on("disconnect", () => {
@@ -33,5 +55,5 @@ io.on("connection", (socket) => {
 
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
-    console.log(`Scoket server running at http://localhost:${port}`);
+    console.log(`Socket server running at http://localhost:${port}`);
 });
